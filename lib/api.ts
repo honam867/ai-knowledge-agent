@@ -12,11 +12,12 @@ export const apiClient = axios.create({
 // Request interceptor for adding auth tokens, logging, etc.
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Add auth token if available (will be handled by auth-api.ts for auth endpoints)
+    // For non-auth endpoints, we can add token here if needed
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (token && !config.url?.includes('/auth/')) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     
     console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
@@ -58,6 +59,16 @@ export const api = {
   
   // Health check
   health: () => apiClient.get('/health'),
+  
+  // Auth endpoints (note: detailed auth logic is in auth-api.ts)
+  auth: {
+    register: (data: any) => apiClient.post('/auth/register', data),
+    login: (data: any) => apiClient.post('/auth/login', data),
+    logout: () => apiClient.post('/auth/logout'),
+    me: () => apiClient.get('/auth/me'),
+    refresh: () => apiClient.post('/auth/refresh'),
+    googleAuth: () => apiClient.get('/auth/google'),
+  },
   
   // Add more endpoints as needed
   // users: {

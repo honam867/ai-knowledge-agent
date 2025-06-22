@@ -8,6 +8,13 @@ export const queryKeys = {
   // Health queries
   health: ['health'] as const,
   
+  // Auth queries
+  auth: {
+    all: ['auth'] as const,
+    user: () => [...queryKeys.auth.all, 'user'] as const,
+    session: () => [...queryKeys.auth.all, 'session'] as const,
+  },
+  
   // Example pattern for other entities:
   // users: {
   //   all: ['users'] as const,
@@ -25,4 +32,8 @@ export const getInvalidationKeys = {
   
   // Invalidate all health-related queries  
   health: () => queryKeys.health,
+  
+  // Invalidate all auth-related queries
+  auth: () => queryKeys.auth.all,
+  authUser: () => queryKeys.auth.user(),
 } as const; 

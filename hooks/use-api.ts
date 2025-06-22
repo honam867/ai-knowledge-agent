@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
+// Auth hooks are in separate files for better organization
+// import { useAuth } from './use-auth';
+// import { useCurrentUserQuery, useLoginMutation } from './use-auth-queries';
 
 // Test endpoint hook
 export function useTestQuery() {
@@ -52,6 +55,7 @@ export function useInvalidateQueries() {
   return {
     invalidateTest: () => queryClient.invalidateQueries({ queryKey: queryKeys.test }),
     invalidateHealth: () => queryClient.invalidateQueries({ queryKey: queryKeys.health }),
+    invalidateAuth: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.all }),
     invalidateAll: () => queryClient.invalidateQueries(),
   };
 } 
