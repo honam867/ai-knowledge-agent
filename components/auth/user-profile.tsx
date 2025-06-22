@@ -25,28 +25,36 @@ export function UserProfile({
 }: UserProfileProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, logout, isLoggingOut, googleAuth, isGoogleAuthenticating } = useAuth();
+  const { user, logout, isLoggingOut, googleAuth, isGoogleAuthenticating } =
+    useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isHandlingCallback, setIsHandlingCallback] = useState(false);
 
   // Handle Google OAuth callback
   useEffect(() => {
     const handleGoogleCallback = async () => {
-      const code = searchParams.get('code');
-      const state = searchParams.get('state');
-      
+      const code = searchParams.get("code");
+      const state = searchParams.get("state");
+      const scope = searchParams.get("scope");
+
       // If we have OAuth parameters and no user yet, handle the callback
-      if (code && !user && !isHandlingCallback) {
+      if (code && scope && !user && !isHandlingCallback) {
         setIsHandlingCallback(true);
         try {
-          console.log('UserProfile: Handling Google OAuth callback with code:', code);
           await googleAuth({ code, state: state || undefined });
-          // Clear the URL parameters after successful authentication
-          router.replace('/dashboard');
+
+          // Clean the URL by removing OAuth parameters after successful authentication
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.delete("code");
+          currentUrl.searchParams.delete("state");
+          currentUrl.searchParams.delete("scope");
+
+          // Replace the current URL with clean version
+          router.replace(currentUrl.pathname);
         } catch (error) {
-          console.error('UserProfile: Google OAuth callback failed:', error);
+          console.error("UserProfile: Google OAuth callback failed:", error);
           // Redirect to signin on failure
-          router.push('/auth/signin?error=oauth_callback_failed');
+          router.push("/auth/signin?error=oauth_callback_failed");
         } finally {
           setIsHandlingCallback(false);
         }

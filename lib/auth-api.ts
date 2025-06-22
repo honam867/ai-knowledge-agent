@@ -51,21 +51,55 @@ export interface ApiError {
   timestamp: string;
 }
 
-// Token management
+// Cookie helper functions
+const setCookie = (name: string, value: string, days: number = 7) => {
+  if (typeof window === "undefined") return;
+  
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;Secure=${location.protocol === 'https:'}`;
+};
+
+const getCookie = (name: string): string | null => {
+  if (typeof window === "undefined") return null;
+  
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+const removeCookie = (name: string) => {
+  if (typeof window === "undefined") return;
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+};
+
+// Token management with both localStorage and cookies
 export const tokenManager = {
   getToken: (): string | null => {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("auth_token");
+    // Try localStorage first, then cookies as fallback
+    return localStorage.getItem("auth_token") || getCookie("auth_token");
   },
 
   setToken: (token: string): void => {
     if (typeof window === "undefined") return;
+    // Set in both localStorage and cookies
     localStorage.setItem("auth_token", token);
+    setCookie("auth_token", token, 7); // 7 days expiry
   },
 
   removeToken: (): void => {
     if (typeof window === "undefined") return;
+    // Remove from both localStorage and cookies
     localStorage.removeItem("auth_token");
+    removeCookie("auth_token");
   },
 
   isTokenExpired: (token: string): boolean => {

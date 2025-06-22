@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +15,13 @@ interface RegisterFormProps {
   redirectTo?: string;
 }
 
-export function RegisterForm({ onSuccess, redirectTo = '/dashboard' }: RegisterFormProps) {
+export function RegisterForm({ onSuccess, redirectTo }: RegisterFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register, isRegistering, error, clearError } = useAuth();
+  
+  // Get the callback URL from search params (set by middleware)
+  const callbackUrl = searchParams.get('callbackUrl') || redirectTo || '/dashboard';
   
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
@@ -76,9 +80,9 @@ export function RegisterForm({ onSuccess, redirectTo = '/dashboard' }: RegisterF
         password: formData.password,
       });
       
-      // Success
+      // Success - redirect to callback URL
       onSuccess?.();
-      router.push(redirectTo);
+      router.push(callbackUrl);
     } catch (error) {
       // Error is handled by the useAuth hook
       console.error('Registration failed:', error);
@@ -109,7 +113,8 @@ export function RegisterForm({ onSuccess, redirectTo = '/dashboard' }: RegisterF
 
   const handleGoogleSuccess = () => {
     onSuccess?.();
-    router.push(redirectTo);
+    // Google OAuth will handle its own redirect through the callback page
+    router.push(`/auth/callback?redirect=${encodeURIComponent(callbackUrl)}`);
   };
 
   const handleGoogleError = (error: string) => {
@@ -125,6 +130,13 @@ export function RegisterForm({ onSuccess, redirectTo = '/dashboard' }: RegisterF
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Show callback URL info if redirected from protected route */}
+        {callbackUrl !== '/dashboard' && (
+          <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-md text-center">
+            You need to create an account to access {callbackUrl}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
@@ -225,7 +237,7 @@ export function RegisterForm({ onSuccess, redirectTo = '/dashboard' }: RegisterF
         <div className="text-center text-sm">
           Already have an account?{' '}
           <a 
-            href="/auth/signin" 
+            href={`/auth/signin${callbackUrl !== '/dashboard' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
             className="text-primary hover:underline font-medium"
           >
             Sign in

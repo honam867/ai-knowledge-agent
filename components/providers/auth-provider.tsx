@@ -30,8 +30,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [auth]);
 
+  // Create the context value with proper typing
+  const contextValue: AuthContextType = {
+    // Fix the user type - convert undefined to null
+    user: auth.user ?? null,
+    isAuthenticated: auth.isAuthenticated,
+    isLoading: auth.isLoading,
+    error: auth.error,
+    login: auth.login,
+    register: auth.register,
+    googleAuth: auth.googleAuth,
+    logout: auth.logout,
+    clearError: auth.clearError,
+    refreshUser: auth.refreshUser,
+  };
+
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

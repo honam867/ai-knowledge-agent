@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +15,13 @@ interface LoginFormProps {
   redirectTo?: string;
 }
 
-export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormProps) {
+export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoggingIn, error, clearError } = useAuth();
+  
+  // Get the callback URL from search params (set by middleware)
+  const callbackUrl = searchParams.get('callbackUrl') || redirectTo || '/dashboard';
   
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -25,6 +29,17 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
   });
   
   const [formErrors, setFormErrors] = useState<Partial<LoginFormData>>({});
+
+  // Clear any auth error from URL params on mount
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      // Clear the error from URL without page reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
 
   const validateForm = (): boolean => {
     const errors: Partial<LoginFormData> = {};
@@ -59,9 +74,9 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
         password: formData.password,
       });
       
-      // Success
+      // Success - redirect to callback URL
       onSuccess?.();
-      router.push(redirectTo);
+      router.push(callbackUrl);
     } catch (error) {
       // Error is handled by the useAuth hook
       console.error('Login failed:', error);
@@ -92,7 +107,9 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
 
   const handleGoogleSuccess = () => {
     onSuccess?.();
-    router.push(redirectTo);
+    // Google OAuth will handle its own redirect through the callback page
+    // The callback page will redirect to dashboard, but we should pass the callbackUrl
+    router.push(`/auth/callback?redirect=${encodeURIComponent(callbackUrl)}`);
   };
 
   const handleGoogleError = (error: string) => {
@@ -108,6 +125,13 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Show callback URL info if redirected from protected route */}
+        {callbackUrl !== '/dashboard' && (
+          <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-md text-center">
+            You need to sign in to access {callbackUrl}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -176,7 +200,7 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
         <div className="text-center text-sm">
           Don&apos;t have an account?{' '}
           <a 
-            href="/auth/signup" 
+            href={`/auth/signup${callbackUrl !== '/dashboard' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
             className="text-primary hover:underline font-medium"
           >
             Sign up
